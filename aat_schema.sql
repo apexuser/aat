@@ -255,7 +255,7 @@ create table attribute(
   application_id number);
 
 alter table attribute add constraint attribute_pk        primary key (attribute_id);
-alter table attribute add constraint attribute_uq        unique (attribute_name, application_id)
+alter table attribute add constraint attribute_uq        unique (attribute_name, application_id);
 alter table attribute add constraint attr_application_fk foreign key (application_id) references application (application_id);
 
 comment on table  attribute                is 'table for attributes for ABAC model';
@@ -265,7 +265,7 @@ comment on column attribute.description    is 'description of an attribute';
 comment on column attribute.application_id is 'application where an attribute is used';
 
 create or replace trigger bi_attribute
-before insert on user_application
+before insert on attribute
 for each row
 begin
   if :new.attribute_id is null then
@@ -291,6 +291,16 @@ comment on column permission_attribute.permission_id           is 'reference to 
 comment on column permission_attribute.attribute_id            is 'reference to an attribute';
 comment on column permission_attribute.start_date              is 'necessity is disputed';
 comment on column permission_attribute.end_date                is 'necessity is disputed';
+
+create or replace trigger bi_permission_attribute
+before insert on permission_attribute
+for each row
+begin
+  if :new.permission_attribute_id is null then
+     :new.permission_attribute_id := auth_seq.nextval;
+  end if;
+end;
+/
 
 @auth_pkg.sql;
 
