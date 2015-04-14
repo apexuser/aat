@@ -1,5 +1,12 @@
 create or replace package body auth_pkg is
 
+  ic_default_admin_name constant apex_user.username%type := 'ADMIN';
+  ic_admin_role      constant apex_role.role_name%type   := 'ADMIN';
+  ic_admin_role_desc constant apex_role.description%type := 'Pre-installed administration role.';
+
+  ic_admin_permission      constant permission.permission_name%type := 'Administration';
+  ic_admin_permission_desc constant permission.description%type     := 'Pre-installed permission to administrative section.';
+
 /* function for encode password. If you decide to change the encode method, 
    you just need to change this function. By default it uses 
    dbms_obfuscation_toolkit.md5 function. */
@@ -25,14 +32,14 @@ begin
          instr(upper(p_password), upper(to_char(p_birth_date, 'dd.mm.yyyy'))) > 0;
 end;
 
-procedure new_user(
+function new_user(
     p_username       in varchar2, 
     p_password       in varchar2, 
     p_user_full_name in nvarchar2 default null,
     p_email          in varchar2  default null,
     p_phone          in varchar2  default null,
     p_birth_date     in date      default null,
-    p_app_id         in number    default v('APP_ID')) is
+    p_app_id         in number    default v('APP_ID')) return number is
 
   en_pwd varchar2(16);
   new_user_id number;
@@ -53,6 +60,7 @@ begin
   insert into user_application (user_application_id, user_id, application_id)
   values (auth_seq.nextval, new_user_id, p_app_id);
   
+  return new_user_id;
   exception
     when dup_val_on_index then
       raise_application_error(-20900, 'User "' || p_username || '" already exists');
@@ -148,17 +156,40 @@ end;
 procedure init_new_app(
     p_apex_id    in number, 
     p_app_name   in varchar2,
-    p_admin_name in varchar2 default 'ADMIN',
+    p_admin_name in varchar2 default null,
     p_admin_pwd  in varchar2 default '987654') is
-  admin_id number;
+  admin_id   apex_user.user_id%type;
+  admin_name apex_user.username%type;
+
+  default_permission_id permission.permission_id%type;
+  default_role_id       apex_role.role_id%type;
 begin
+  admin_name := nvl(p_admin_name, ic_default_admin_name || '_' || p_apex_id);
+  
   insert into application (application_id, application_name)
   values (p_apex_id, p_app_name);
   
-  new_user(
-    p_username => p_admin_name, 
-    p_password => p_admin_pwd, 
-    p_app_id   => p_apex_id);
+  admin_id := new_user(
+                p_username => admin_name, 
+                p_password => p_admin_pwd, 
+                p_app_id   => p_apex_id);
+    
+  insert into apex_role (role_id, role_name, description, application_id)
+  values (auth_seq.nextval, ic_admin_role, ic_admin_role_desc, p_apex_id)
+  returning role_id into default_role_id;
+  
+  insert into permission (permission_id, permission_name, description, application_id)
+  values (auth_seq.nextval, ic_admin_permission, ic_admin_permission_desc, p_apex_id)
+  returning permission_id into default_permission_id;
+  
+  insert into user_permission (user_permission_id, user_id, permission_id)
+  values (auth_seq.nextval, admin_id, default_permission_id);
+  
+  insert into user_role (user_role_id, user_id, role_id)
+  values (auth_seq.nextval, admin_id, default_role_id);
+  
+  insert into role_permission (role_permission_id, role_id, permission_id)
+  values (auth_seq.nextval, default_role_id, default_permission_id);
 end;
 
 end auth_pkg;
