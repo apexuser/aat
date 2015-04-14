@@ -29,10 +29,10 @@ With best regards,
 procedure new_user(
     p_username       in varchar2, 
     p_password       in varchar2, 
-    p_user_full_name in nvarchar2,
-    p_email          in varchar2 default null,
-    p_phone          in varchar2 default null,
-    p_birth_date     in date     default null);
+    p_user_full_name in nvarchar2 default null,
+    p_email          in varchar2  default null,
+    p_phone          in varchar2  default null,
+    p_birth_date     in date      default null);
 
 /* Function checks login and password. */
 function check_user(

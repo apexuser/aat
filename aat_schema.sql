@@ -76,27 +76,27 @@ end;
 /
 
 -- table for roles
-create table role(
+create table apex_role(
   role_id        number,
   parent_id      number,
   role_name      nvarchar2(100),
   application_id number,
   description    varchar2(1000));
 
-alter table role add constraint role_pk          primary key (role_id);
-alter table role add constraint role_name_uq     unique (role_name, application_id);
-alter table role add constraint parent_role      foreign key (parent_id)      references role (role_id);
-alter table role add constraint r_application_fk foreign key (application_id) references application (application_id);
+alter table apex_role add constraint role_pk          primary key (role_id);
+alter table apex_role add constraint role_name_uq     unique (role_name, application_id);
+alter table apex_role add constraint parent_role      foreign key (parent_id)      references apex_role (role_id);
+alter table apex_role add constraint r_application_fk foreign key (application_id) references application (application_id);
 
-comment on table  role                is 'hierarchical table of roles for RBAC model';
-comment on column role.role_id        is 'primary key';
-comment on column role.parent_id      is 'parent role (higher level for combine multiple roles)';
-comment on column role.role_name      is 'name of role for displaying in interface';
-comment on column role.application_id is 'number of application where this role is used';
-comment on column role.description    is 'description of a role';
+comment on table  apex_role                is 'hierarchical table of roles for RBAC model';
+comment on column apex_role.role_id        is 'primary key';
+comment on column apex_role.parent_id      is 'parent role (higher level for combine multiple roles)';
+comment on column apex_role.role_name      is 'name of role for displaying in interface';
+comment on column apex_role.application_id is 'number of application where this role is used';
+comment on column apex_role.description    is 'description of a role';
 
 create or replace trigger bi_role
-before insert on role
+before insert on apex_role
 for each row
 begin
   if :new.role_id is null then
@@ -142,7 +142,7 @@ create table user_role(
 
 alter table user_role add constraint user_role_pk primary key (user_role_id);
 alter table user_role add constraint ur_user_fk   foreign key (user_id) references apex_user (user_id);
-alter table user_role add constraint ur_role_fk   foreign key (role_id) references role (role_id);
+alter table user_role add constraint ur_role_fk   foreign key (role_id) references apex_role (role_id);
 
 comment on table  user_role is 'joining users and roles';
 comment on column user_role.user_role_id is 'primary key';
@@ -170,7 +170,7 @@ create table role_permission(
   end_date           date);
 
 alter table role_permission add constraint role_permission_pk primary key (role_permission_id);
-alter table role_permission add constraint rp_role_fk         foreign key (role_id)       references role (role_id);
+alter table role_permission add constraint rp_role_fk         foreign key (role_id)       references apex_role (role_id);
 alter table role_permission add constraint rp_permission_fk   foreign key (permission_id) references permission (permission_id);
 
 comment on table  role_permission                    is 'joining roles and permissions';

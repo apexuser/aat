@@ -1,15 +1,15 @@
 create or replace package body auth_pkg is
 
-/* function for encode password. If you decide to change the ecode method, 
+/* function for encode password. If you decide to change the encode method, 
    you just need to change this function. By default it uses 
    dbms_obfuscation_toolkit.md5 function. */
-function encode(p_pwd in varchar2) return varchar is
+function encode(p_pwd in varchar2, p_salt in varchar2 default null) return varchar2 is
 begin
-  return dbms_obfuscation_toolkit.md5(input_string => p_pwd);
+  return dbms_obfuscation_toolkit.md5(input_string => p_pwd || p_salt);
 end;
 
 /* function checks strength of password. Basic check is quite weak
-   and simply checks that user's name, email and phone number don't
+   and simply checks that user's name, email, birth date and phone number don't
    included into a passwrd. */
 function is_password_weak(    
     p_username       in varchar2,
@@ -28,10 +28,10 @@ end;
 procedure new_user(
     p_username       in varchar2, 
     p_password       in varchar2, 
-    p_user_full_name in nvarchar2,
-    p_email          in varchar2 default null,
-    p_phone          in varchar2 default null,
-    p_birth_date     in date default null) is
+    p_user_full_name in nvarchar2 default null,
+    p_email          in varchar2  default null,
+    p_phone          in varchar2  default null,
+    p_birth_date     in date      default null) is
 
   en_pwd varchar2(16);
 begin
@@ -43,8 +43,8 @@ begin
      raise_application_error(-20902, 'Password too weak');
   end if;
   
-  en_pwd := encode(p_password);
-  insert into auth_user(user_id, username, user_full_name, pwd, email, phone, birth_date)
+  en_pwd := encode(p_password, p_username);
+  insert into apex_user(user_id, username, user_full_name, pwd, email, phone, birth_date)
   values (auth_seq.nextval, p_username, p_user_full_name, en_pwd, p_email, p_phone, p_birth_date);
 
   exception
@@ -63,7 +63,7 @@ begin
   
   select count(*)
     into cnt
-    from auth_user
+    from apex_user
    where username = p_username
      and pwd = en_pwd
      and is_active = 1;
@@ -78,7 +78,7 @@ begin
   tmp_pwd := dbms_random.value(8, 'X');
   en_pwd := encode(tmp_pwd);
   
-  update auth_user 
+  update apex_user 
      set pwd = en_pwd,
          change_pwd = 1
    where username = p_username;
@@ -87,12 +87,12 @@ end;
 
 procedure block_user(p_username in varchar2) is
 begin
-  update auth_user set is_active = 0 where username = p_username;
+  update apex_user set is_active = 0 where username = p_username;
 end;
 
 procedure unlock_user(p_username in varchar2) is
 begin
-  update auth_user set is_active = 1 where username = p_username;
+  update apex_user set is_active = 1 where username = p_username;
 end;
 
 procedure change_password(
@@ -100,16 +100,16 @@ procedure change_password(
     p_old_password in varchar2, 
     p_new_password in varchar2) is
 
-  user_email auth_user.email%type;
-  user_phone auth_user.phone%type;
-  user_bdate auth_user.birth_date%type;
+  user_email apex_user.email%type;
+  user_phone apex_user.phone%type;
+  user_bdate apex_user.birth_date%type;
   en_pwd     varchar2(16);
 begin
   en_pwd := encode(p_old_password);
 
   select email, phone, birth_date
     into user_email, user_phone, user_bdate
-    from auth_user
+    from apex_user
    where username = p_username
      and pwd = en_pwd
      and is_active = 1;
@@ -117,7 +117,7 @@ begin
   if is_password_weak(p_username, p_new_password, user_email, user_phone, user_bdate) then
      raise_application_error(-20902, 'Password too weak');
   else
-     update auth_user
+     update apex_user
         set pwd = en_pwd,
             change_pwd = 0
       where username = p_username;
