@@ -12,7 +12,7 @@ prompt  APPLICATION 100 - App template
 -- Application Export:
 --   Application:     100
 --   Name:            App template
---   Date and Time:   00:49 Saturday March 21, 2015
+--   Date and Time:   17:54 Sunday March 29, 2015
 --   Exported By:     DIMA
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -188,7 +188,7 @@ wwv_flow_api.create_flow(
   p_include_legacy_javascript=> 'Y',
   p_default_error_display_loc=> 'INLINE_WITH_FIELD_AND_NOTIFICATION',
   p_last_updated_by => 'DIMA',
-  p_last_upd_yyyymmddhh24miss=> '20150321004945',
+  p_last_upd_yyyymmddhh24miss=> '20150329175402',
   p_ui_type_name => null,
   p_required_roles=> wwv_flow_utilities.string_to_table2(''));
  
@@ -337,6 +337,18 @@ prompt  ...page groups
  
 begin
  
+wwv_flow_api.create_page_group(
+  p_id=>2732805747839424 + wwv_flow_api.g_id_offset,
+  p_flow_id=>wwv_flow.g_flow_id,
+  p_group_name=>'Access management',
+  p_group_desc=>'');
+ 
+wwv_flow_api.create_page_group(
+  p_id=>2732907133839814 + wwv_flow_api.g_id_offset,
+  p_flow_id=>wwv_flow.g_flow_id,
+  p_group_name=>'Personal pages',
+  p_group_desc=>'');
+ 
 null;
  
 end;
@@ -359,15 +371,22 @@ wwv_flow_api.create_page (
  ,p_tab_set => 'TS1'
  ,p_name => 'Home'
  ,p_step_title => 'Home'
+ ,p_allow_duplicate_submissions => 'Y'
  ,p_step_sub_title => 'Home'
  ,p_step_sub_title_type => 'TEXT_WITH_SUBSTITUTIONS'
+ ,p_first_item => 'AUTO_FIRST_ITEM'
  ,p_include_apex_css_js_yn => 'Y'
  ,p_autocomplete_on_off => 'ON'
+ ,p_group_id => 2732907133839814 + wwv_flow_api.g_id_offset
  ,p_page_is_public_y_n => 'N'
+ ,p_protection_level => 'N'
  ,p_cache_page_yn => 'N'
+ ,p_cache_timeout_seconds => 21600
+ ,p_cache_by_user_yn => 'N'
  ,p_help_text => 
 'No help is available for this page.'
- ,p_last_upd_yyyymmddhh24miss => '20150320190257'
+ ,p_last_updated_by => 'DIMA'
+ ,p_last_upd_yyyymmddhh24miss => '20150329175328'
   );
 null;
  
@@ -452,14 +471,20 @@ wwv_flow_api.create_page (
  ,p_name => 'Login'
  ,p_alias => 'LOGIN_DESKTOP'
  ,p_step_title => 'Login'
+ ,p_allow_duplicate_submissions => 'Y'
  ,p_step_sub_title_type => 'TEXT_WITH_SUBSTITUTIONS'
  ,p_first_item => 'AUTO_FIRST_ITEM'
  ,p_include_apex_css_js_yn => 'Y'
  ,p_autocomplete_on_off => 'OFF'
+ ,p_group_id => 2732805747839424 + wwv_flow_api.g_id_offset
  ,p_step_template => 2514730830869111 + wwv_flow_api.g_id_offset
  ,p_page_is_public_y_n => 'Y'
+ ,p_protection_level => 'N'
  ,p_cache_page_yn => 'N'
- ,p_last_upd_yyyymmddhh24miss => '20150320190257'
+ ,p_cache_timeout_seconds => 21600
+ ,p_cache_by_user_yn => 'N'
+ ,p_last_updated_by => 'DIMA'
+ ,p_last_upd_yyyymmddhh24miss => '20150329175340'
   );
 null;
  
