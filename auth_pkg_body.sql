@@ -31,9 +31,11 @@ procedure new_user(
     p_user_full_name in nvarchar2 default null,
     p_email          in varchar2  default null,
     p_phone          in varchar2  default null,
-    p_birth_date     in date      default null) is
+    p_birth_date     in date      default null,
+    p_app_id         in number    default v('APP_ID')) is
 
   en_pwd varchar2(16);
+  new_user_id number;
 begin
   if p_password is null then
      raise_application_error(-20901, 'Password is empty');
@@ -44,12 +46,16 @@ begin
   end if;
   
   en_pwd := encode(p_password, p_username);
+  new_user_id := auth_seq.nextval;
   insert into apex_user(user_id, username, user_full_name, pwd, email, phone, birth_date)
-  values (auth_seq.nextval, p_username, p_user_full_name, en_pwd, p_email, p_phone, p_birth_date);
+  values (new_user_id, p_username, p_user_full_name, en_pwd, p_email, p_phone, p_birth_date);
 
+  insert into user_application (user_application_id, user_id, application_id)
+  values (auth_seq.nextval, new_user_id, p_app_id);
+  
   exception
     when dup_val_on_index then
-      raise_application_error(-20900, 'User already exists');
+      raise_application_error(-20900, 'User "' || p_username || '" already exists');
 end;
 
 function check_user(
@@ -59,7 +65,7 @@ function check_user(
   cnt    number;
   en_pwd varchar2(16);
 begin
-  en_pwd := encode(p_password);
+  en_pwd := encode(p_password, p_username);
   
   select count(*)
     into cnt
@@ -137,6 +143,22 @@ begin
                and sysdate < nvl(p_end_date,   sysdate + 1) 
            then 1
            else 0 end;
+end;
+
+procedure init_new_app(
+    p_apex_id    in number, 
+    p_app_name   in varchar2,
+    p_admin_name in varchar2 default 'ADMIN',
+    p_admin_pwd  in varchar2 default '987654') is
+  admin_id number;
+begin
+  insert into application (application_id, application_name)
+  values (p_apex_id, p_app_name);
+  
+  new_user(
+    p_username => p_admin_name, 
+    p_password => p_admin_pwd, 
+    p_app_id   => p_apex_id);
 end;
 
 end auth_pkg;

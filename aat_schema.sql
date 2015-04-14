@@ -24,18 +24,8 @@ alter table application add constraint application_pk primary key (application_i
 alter table application add constraint application_name_uq unique (application_name);
 
 comment on table  application                  is 'list of installed applications';
-comment on column application.application_id   is 'primary key';
+comment on column application.application_id   is 'primary key, equal to application ID in APEX';
 comment on column application.application_name is 'name of application';
-
-create or replace trigger bi_application
-before insert on application
-for each row
-begin
-  if :new.application_id is null then
-     :new.application_id := auth_seq.nextval;
-  end if;
-end;
-/
 
 -- table for users
 create table apex_user(

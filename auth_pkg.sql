@@ -25,14 +25,17 @@ With best regards,
    Checks and raises exceptions if:
    - such user already exists;
    - password is null;
-   - password contents login, email or phone number */
+   - password contents login, email or phone number 
+   Returns ID of new user
+   */
 procedure new_user(
     p_username       in varchar2, 
     p_password       in varchar2, 
     p_user_full_name in nvarchar2 default null,
     p_email          in varchar2  default null,
     p_phone          in varchar2  default null,
-    p_birth_date     in date      default null);
+    p_birth_date     in date      default null,
+    p_app_id         in number    default v('APP_ID'));
 
 /* Function checks login and password. */
 function check_user(
@@ -43,7 +46,7 @@ function check_user(
    new password on email. */
 procedure recover_password(p_username in varchar2);
 
-/* this cen be understood without explanations */
+/* this can be understood without explanations */
 procedure block_user(p_username in varchar2);
 
 procedure unlock_user(p_username in varchar2);
@@ -58,6 +61,13 @@ procedure change_password(
 function date_check(
     p_start_date in date,
     p_end_date   in date) return number; 
+
+/* initiates new application and creates admin user for this application */
+procedure init_new_app(
+    p_apex_id    in number, 
+    p_app_name   in varchar2,
+    p_admin_name in varchar2 default 'ADMIN',
+    p_admin_pwd  in varchar2 default '987654');
 
 end auth_pkg;
 /
