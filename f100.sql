@@ -12,7 +12,7 @@ prompt  APPLICATION 100 - App template
 -- Application Export:
 --   Application:     100
 --   Name:            App template
---   Date and Time:   17:54 Sunday March 29, 2015
+--   Date and Time:   07:59 Monday March 30, 2015
 --   Exported By:     DIMA
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -31,7 +31,7 @@ prompt  APPLICATION 100 - App template
 --     Regions:                  2
 --   Shared Components:
 --     Logic:
---       Build Options:          2
+--       Build Options:          6
 --     Navigation:
 --       Tab Sets:               1
 --         Tabs:                 1
@@ -39,7 +39,7 @@ prompt  APPLICATION 100 - App template
 --         Entries:              1
 --       NavBar Entries:         1
 --     Security:
---       Authentication:         1
+--       Authentication:         2
 --     User Interface:
 --       Themes:                 1
 --       Templates:
@@ -163,7 +163,7 @@ wwv_flow_api.create_flow(
   p_publish_yn=> 'N',
   p_documentation_banner=> '',
   p_authentication=> 'PLUGIN',
-  p_authentication_id=> 2525732040869210 + wwv_flow_api.g_id_offset,
+  p_authentication_id=> 2738310791851265 + wwv_flow_api.g_id_offset,
   p_logout_url=> '',
   p_application_tab_set=> 0,
   p_logo_image => 'TEXT:App template',
@@ -175,7 +175,7 @@ wwv_flow_api.create_flow(
   p_cust_authentication_page=> '',
   p_flow_version=> 'release 1.0',
   p_flow_status=> 'AVAILABLE_W_EDIT_LINK',
-  p_flow_unavailable_text=> '',
+  p_flow_unavailable_text=> 'This application is currently unavailable at this time.',
   p_build_status=> 'RUN_AND_BUILD',
   p_exact_substitutions_only=> 'Y',
   p_browser_cache=>'N',
@@ -188,7 +188,7 @@ wwv_flow_api.create_flow(
   p_include_legacy_javascript=> 'Y',
   p_default_error_display_loc=> 'INLINE_WITH_FIELD_AND_NOTIFICATION',
   p_last_updated_by => 'DIMA',
-  p_last_upd_yyyymmddhh24miss=> '20150329175402',
+  p_last_upd_yyyymmddhh24miss=> '20150330075946',
   p_ui_type_name => null,
   p_required_roles=> wwv_flow_utilities.string_to_table2(''));
  
@@ -7483,20 +7483,48 @@ prompt  ...build options
  
 begin
  
---application/shared_components/logic/build_options/registration_form
-wwv_flow_api.create_build_option (
-  p_id=> 2530226503885413 + wwv_flow_api.g_id_offset,
-  p_flow_id=> wwv_flow.g_flow_id,
-  p_build_option_name=> 'Registration form',
-  p_build_option_status=> 'INCLUDE',
-  p_build_option_comment=> 'Enables form for registration new user');
 --application/shared_components/logic/build_options/login_password_in_nav_bar
 wwv_flow_api.create_build_option (
   p_id=> 2532206878894547 + wwv_flow_api.g_id_offset,
   p_flow_id=> wwv_flow.g_flow_id,
   p_build_option_name=> 'login-password in nav bar',
   p_build_option_status=> 'INCLUDE',
-  p_build_option_comment=> 'Enables fields login/password for authorization');
+  p_build_option_comment=> 'Enables fields login/password for authorization in navigation bar.');
+--application/shared_components/logic/build_options/simple_role_model
+wwv_flow_api.create_build_option (
+  p_id=> 2742626405679803 + wwv_flow_api.g_id_offset,
+  p_flow_id=> wwv_flow.g_flow_id,
+  p_build_option_name=> 'Simple role model',
+  p_build_option_status=> 'INCLUDE',
+  p_build_option_comment=> 'Enables simple model for access management. Users can have direct access to application''s objects. Option enables pages for tuning access rights.');
+--application/shared_components/logic/build_options/rbac_model
+wwv_flow_api.create_build_option (
+  p_id=> 2742813681685682 + wwv_flow_api.g_id_offset,
+  p_flow_id=> wwv_flow.g_flow_id,
+  p_build_option_name=> 'RBAC model',
+  p_build_option_status=> 'INCLUDE',
+  p_build_option_comment=> 'RBAC model for access management. Option enables pages for tuning access rights.');
+--application/shared_components/logic/build_options/abac_model
+wwv_flow_api.create_build_option (
+  p_id=> 2743007427688621 + wwv_flow_api.g_id_offset,
+  p_flow_id=> wwv_flow.g_flow_id,
+  p_build_option_name=> 'ABAC model',
+  p_build_option_status=> 'INCLUDE',
+  p_build_option_comment=> 'ABAC model for access management. Option enables pages for tuning access rights.');
+--application/shared_components/logic/build_options/sign_up
+wwv_flow_api.create_build_option (
+  p_id=> 2743217551699111 + wwv_flow_api.g_id_offset,
+  p_flow_id=> wwv_flow.g_flow_id,
+  p_build_option_name=> 'Sign up',
+  p_build_option_status=> 'INCLUDE',
+  p_build_option_comment=> 'Users can sign up without assistance (like in internet forums, for example). Option enables page for registration.');
+--application/shared_components/logic/build_options/password_recovery
+wwv_flow_api.create_build_option (
+  p_id=> 2743415597715257 + wwv_flow_api.g_id_offset,
+  p_flow_id=> wwv_flow.g_flow_id,
+  p_build_option_name=> 'Password recovery',
+  p_build_option_status=> 'INCLUDE',
+  p_build_option_comment=> 'User can recover password (by sending email message). Option enables page and controls that allow to reset password.');
  
 end;
 /
@@ -7538,6 +7566,26 @@ wwv_flow_api.create_authentication (
  ,p_flow_id => wwv_flow.g_flow_id
  ,p_name => 'Application Express Authentication'
  ,p_scheme_type => 'NATIVE_APEX_ACCOUNTS'
+ ,p_invalid_session_type => 'LOGIN'
+ ,p_use_secure_cookie_yn => 'N'
+  );
+null;
+ 
+end;
+/
+
+--application/shared_components/security/authentication/custom_scheme
+prompt  ......authentication 2738310791851265
+ 
+begin
+ 
+wwv_flow_api.create_authentication (
+  p_id => 2738310791851265 + wwv_flow_api.g_id_offset
+ ,p_flow_id => wwv_flow.g_flow_id
+ ,p_name => 'Custom scheme'
+ ,p_scheme_type => 'NATIVE_CUSTOM'
+ ,p_attribute_03 => 'auth_pkg.check_user'
+ ,p_attribute_05 => 'N'
  ,p_invalid_session_type => 'LOGIN'
  ,p_use_secure_cookie_yn => 'N'
   );
