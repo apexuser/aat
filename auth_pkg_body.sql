@@ -12,6 +12,7 @@ create or replace package body auth_pkg is
    dbms_obfuscation_toolkit.md5 function. */
 function encode(p_pwd in varchar2, p_salt in varchar2 default null) return varchar2 is
 begin
+  write_to_log('ENCODE', ' p_pwd = ' || p_pwd || ' p_salt = ' || p_salt || ' hash = ' || dbms_obfuscation_toolkit.md5(input_string => p_pwd || p_salt));
   return dbms_obfuscation_toolkit.md5(input_string => p_pwd || p_salt);
 end;
 
@@ -52,6 +53,8 @@ begin
      raise_application_error(-20902, 'Password too weak');
   end if;
   
+  write_to_log('NEW_USER', 'p_username = ' || p_username || ' p_password = ' || p_password);
+
   en_pwd := encode(p_password, p_username);
   new_user_id := auth_seq.nextval;
   insert into apex_user(user_id, username, user_full_name, pwd, email, phone, birth_date)
@@ -73,6 +76,7 @@ function check_user(
   cnt    number;
   en_pwd varchar2(16);
 begin
+  write_to_log('CHECK_USER', 'p_username = ' || p_username || ' p_password = ' || p_password);
   en_pwd := encode(p_password, p_username);
   
   select count(*)
@@ -169,6 +173,8 @@ begin
   insert into application (application_id, application_name)
   values (p_apex_id, p_app_name);
   
+  write_to_log('INIT_NEW_APP', 'admin_name = ' || admin_name || ' p_admin_pwd = ' || p_admin_pwd);
+  
   admin_id := new_user(
                 p_username => admin_name, 
                 p_password => p_admin_pwd, 
@@ -190,6 +196,16 @@ begin
   
   insert into role_permission (role_permission_id, role_id, permission_id)
   values (auth_seq.nextval, default_role_id, default_permission_id);
+end;
+
+procedure write_to_log(
+    p_message_group in varchar2,
+    p_message       in varchar2) is
+  pragma autonomous_transaction;
+begin
+  insert into debug_log(app_user, app_id, app_page_id, message_group, message)
+  values (v('APP_USER'), nv('APP_ID'), nv('APP_PAGE_ID'), p_message_group, p_message);
+  commit;
 end;
 
 end auth_pkg;

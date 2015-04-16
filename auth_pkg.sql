@@ -56,8 +56,9 @@ procedure change_password(
     p_old_password in varchar2, 
     p_new_password in varchar2);
 
-/* function checks is current date in desired interval
-   a border with NULL value is considered as "no border" */
+/* Function checks is current date in desired interval
+   a border with NULL value is considered as "no border".
+   Returns 1 if current date is inside a given time interval and 0 if not. */
 function date_check(
     p_start_date in date,
     p_end_date   in date) return number; 
@@ -72,6 +73,11 @@ procedure init_new_app(
     p_app_name   in varchar2,
     p_admin_name in varchar2 default null,
     p_admin_pwd  in varchar2 default '987654');
+
+/* logging procedure */
+procedure write_to_log(
+    p_message_group in varchar2,
+    p_message       in varchar2);
 
 end auth_pkg;
 /

@@ -292,6 +292,14 @@ begin
 end;
 /
 
+create table debug_log(
+  log_date      date default sysdate,
+  app_user      varchar2(30),
+  app_id        number,
+  app_page_id   number,
+  message_group varchar2(100),
+  message       varchar2(4000));
+
 @auth_pkg.sql;
 
 @auth_pkg_body.sql;
