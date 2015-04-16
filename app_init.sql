@@ -5,5 +5,6 @@ declare
   new_admin_pwd varchar2(100) := '&&NEW_ADMIN_PASSWORD';
 begin
   auth_pkg.init_new_app(new_app_id, new_app_name, new_app_admin, new_admin_pwd);
+  commit;
 end;
 /
