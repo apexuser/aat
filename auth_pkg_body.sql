@@ -42,23 +42,26 @@ function new_user(
     p_birth_date     in date      default null,
     p_app_id         in number    default v('APP_ID')) return number is
 
-  en_pwd varchar2(16);
+  en_pwd apex_user.pwd%type;
   new_user_id number;
+  db_username apex_user.username%type;
 begin
+  db_username := upper(p_username);
+
   if p_password is null then
      raise_application_error(-20901, 'Password is empty');
   end if;
 
-  if is_password_weak( p_username, p_password, p_email, p_phone, p_birth_date) then
+  if is_password_weak( db_username, p_password, p_email, p_phone, p_birth_date) then
      raise_application_error(-20902, 'Password too weak');
   end if;
   
-  write_to_log('NEW_USER', 'p_username = ' || p_username || ' p_password = ' || p_password);
+  write_to_log('NEW_USER', 'p_username = ' || db_username || ' p_password = ' || p_password);
 
-  en_pwd := encode(p_password, p_username);
+  en_pwd := encode(p_password, db_username);
   new_user_id := auth_seq.nextval;
   insert into apex_user(user_id, username, user_full_name, pwd, email, phone, birth_date)
-  values (new_user_id, p_username, p_user_full_name, en_pwd, p_email, p_phone, p_birth_date);
+  values (new_user_id, db_username, p_user_full_name, en_pwd, p_email, p_phone, p_birth_date);
 
   insert into user_application (user_application_id, user_id, application_id)
   values (auth_seq.nextval, new_user_id, p_app_id);
@@ -66,7 +69,7 @@ begin
   return new_user_id;
   exception
     when dup_val_on_index then
-      raise_application_error(-20900, 'User "' || p_username || '" already exists');
+      raise_application_error(-20900, 'User "' || db_username || '" already exists');
 end;
 
 function check_user(
@@ -74,15 +77,17 @@ function check_user(
     p_password in varchar2) return boolean is
 
   cnt    number;
-  en_pwd varchar2(16);
+  en_pwd apex_user.pwd%type;
+  db_username apex_user.username%type;
 begin
-  write_to_log('CHECK_USER', 'p_username = ' || p_username || ' p_password = ' || p_password);
-  en_pwd := encode(p_password, p_username);
+  db_username := upper(p_username);
+  write_to_log('CHECK_USER', 'p_username = ' || db_username || ' p_password = ' || p_password);
+  en_pwd := encode(p_password, db_username);
   
   select count(*)
     into cnt
     from apex_user
-   where username = p_username
+   where username = db_username
      and pwd = en_pwd
      and is_active = 1;
   
@@ -90,27 +95,33 @@ begin
 end;
 
 procedure recover_password(p_username in varchar2) is
-  tmp_pwd varchar2(8);
-  en_pwd  varchar2(16);
+  tmp_pwd     varchar2(8);
+  en_pwd      apex_user.pwd%type;
+  db_username apex_user.username%type;
 begin
   tmp_pwd := dbms_random.value(8, 'X');
-  en_pwd := encode(tmp_pwd);
+  db_username := upper(p_username);
+  en_pwd := encode(tmp_pwd, db_username);
   
   update apex_user 
      set pwd = en_pwd,
          change_pwd = 1
-   where username = p_username;
+   where username = db_username;
   
 end;
 
 procedure block_user(p_username in varchar2) is
+  db_username apex_user.username%type;
 begin
-  update apex_user set is_active = 0 where username = p_username;
+  db_username := upper(p_username);
+  update apex_user set is_active = 0 where username = db_username;
 end;
 
 procedure unlock_user(p_username in varchar2) is
+  db_username apex_user.username%type;
 begin
-  update apex_user set is_active = 1 where username = p_username;
+  db_username := upper(p_username);
+  update apex_user set is_active = 1 where username = db_username;
 end;
 
 procedure change_password(
@@ -118,27 +129,29 @@ procedure change_password(
     p_old_password in varchar2, 
     p_new_password in varchar2) is
 
-  user_email apex_user.email%type;
-  user_phone apex_user.phone%type;
-  user_bdate apex_user.birth_date%type;
-  en_pwd     varchar2(16);
+  user_email  apex_user.email%type;
+  user_phone  apex_user.phone%type;
+  user_bdate  apex_user.birth_date%type;
+  en_pwd      apex_user.pwd%type;
+  db_username apex_user.username%type;
 begin
-  en_pwd := encode(p_old_password);
+  db_username := upper(p_username);
+  en_pwd := encode(p_old_password, db_username);
 
   select email, phone, birth_date
     into user_email, user_phone, user_bdate
     from apex_user
-   where username = p_username
+   where username = db_username
      and pwd = en_pwd
      and is_active = 1;
 
-  if is_password_weak(p_username, p_new_password, user_email, user_phone, user_bdate) then
+  if is_password_weak(db_username, p_new_password, user_email, user_phone, user_bdate) then
      raise_application_error(-20902, 'Password too weak');
   else
      update apex_user
         set pwd = en_pwd,
             change_pwd = 0
-      where username = p_username;
+      where username = db_username;
   end if;
   
   exception
@@ -162,13 +175,14 @@ procedure init_new_app(
     p_app_name   in varchar2,
     p_admin_name in varchar2 default null,
     p_admin_pwd  in varchar2 default '987654') is
+
   admin_id   apex_user.user_id%type;
   admin_name apex_user.username%type;
 
   default_permission_id permission.permission_id%type;
   default_role_id       apex_role.role_id%type;
 begin
-  admin_name := nvl(p_admin_name, ic_default_admin_name || '_' || p_apex_id);
+  admin_name := upper(nvl(p_admin_name, ic_default_admin_name || '_' || p_apex_id));
   
   insert into application (application_id, application_name)
   values (p_apex_id, p_app_name);
