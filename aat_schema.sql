@@ -65,6 +65,35 @@ begin
 end;
 /
 
+-- table for deputies
+create table deputy(
+  deputy_id  number,
+  user_id    number,
+  deputy_of  number,
+  start_date date,
+  end_date   date);
+
+alter table add constraint deputy_pk primary key (deputy_id);
+alter table add constraint user_fk       foreign key (user_id)   references apex_user (user_id);
+alter table add constraint replaced_user foreign key (deputy_of) references apex_user (user_id);
+
+comment on table  deputy is 'Table allows users to temporarily get privileges of another user';
+comment on column deputy.deputy_id  is 'primary key';
+comment on column deputy.user_id    is 'User who temporarily got privileges of another user';
+comment on column deputy.deputy_of  is 'User who is temporarily replaced';
+comment on column deputy.start_date is 'Start date of having privileges of another user';
+comment on column deputy.end_date   is 'End date of having privileges of another user';
+
+create or replace trigger bi_deputy
+before insert on deputy
+for each row
+begin
+  if :new.deputy_id is null then
+     :new.deputy_id := auth_seq.nextval;
+  end if;
+end;
+/
+
 -- table for roles
 create table apex_role(
   role_id        number,

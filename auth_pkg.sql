@@ -79,5 +79,8 @@ procedure write_to_log(
     p_message_group in varchar2,
     p_message       in varchar2);
 
+/* function checks access for authorization schemes in APEX application */
+function authorization_scheme_check(p_authorization_scheme in varchar2) return boolean;
+
 end auth_pkg;
 /

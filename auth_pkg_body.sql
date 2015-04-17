@@ -222,5 +222,91 @@ begin
   commit;
 end;
 
+function authorization_scheme_check(p_authorization_scheme in varchar2) return boolean is
+  res number;
+begin
+  with simple_scheme as (
+       -- subquery #1 - direct connection users to permissions
+       select username, permission_name
+         from apex_user au,
+              permission p,
+              user_permission up
+        where au.user_id = up.user_id
+          and up.permission_id = p.permission_id
+          and date_check(up.start_date, up.end_date) = 1
+          and p.application_id = nv('APP_ID')
+          and au.username = v('APP_USER')
+          and p.permission_name = p_authorization_scheme),
+       rbac_scheme as (
+       -- subquery #2 - connection through roles
+       select username, permission_name
+         from apex_user au,
+              user_role ur,
+              role_permission rp,
+              permission p,
+              apex_role ar
+        where au.user_id = ur.user_id
+          and ur.role_id = rp.role_id
+          and ar.role_id = ur.role_id
+          and rp.permission_id = p.permission_id
+          and date_check(ur.start_date, ur.end_date) = 1
+          and date_check(rp.start_date, rp.end_date) = 1
+          and ar.application_id = nv('APP_ID')
+          and  p.application_id = nv('APP_ID')
+          and au.username = v('APP_USER')
+          and p.permission_name = p_authorization_scheme),
+       simple_deputy as (
+       -- subquery #3 - direct connection users to permissions
+       -- check when user is someone's deputy
+       select username, permission_name
+         from apex_user au,
+              permission p,
+              user_permission up,
+              deputy d
+        where au.user_id = d.user_id
+          and d.deputy_of = up.user_id
+          and up.permission_id = p.permission_id
+          and date_check(up.start_date, up.end_date) = 1
+          and p.application_id = nv('APP_ID')
+          and au.username = v('APP_USER')
+          and p.permission_name = p_authorization_scheme),
+       -- subquery #4 - connection through roles
+       -- check when user is someone's deputy
+       rbac_deputy as (
+       select username, permission_name
+         from apex_user au,
+              user_role ur,
+              role_permission rp,
+              permission p,
+              apex_role ar,
+              deputy d
+        where au.user_id = d.user_id
+          and ur.user_id = d.deputy_of
+          and ur.role_id = rp.role_id
+          and ar.role_id = ur.role_id
+          and rp.permission_id = p.permission_id
+          and date_check(ur.start_date, ur.end_date) = 1
+          and date_check(rp.start_date, rp.end_date) = 1
+          and ar.application_id = nv('APP_ID')
+          and  p.application_id = nv('APP_ID')
+          and au.username = v('APP_USER')
+          and p.permission_name = p_authorization_scheme)
+  select count(*)
+    into res
+    from (select *
+            from simple_scheme
+           union all
+          select *
+            from rbac_scheme
+           union all
+          select username, permission_name
+            from simple_deputy
+           union all
+          select username, permission_name
+            from rbac_deputy);
+    
+  return res > 0;
+end;
+
 end auth_pkg;
 /
