@@ -5,6 +5,6 @@ Following features are already implemented in this template:
  * custom authentication scheme
  * all supporting database objects for authentication scheme (package with functions to create user, check password, etc.)
  * pages for access rights tuning
- * default ADMIN user for application
+ * default ADMIN user for an application
 
 Also you can use this template for creating multiple applications in one APEX workspace.
