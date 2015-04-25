@@ -308,5 +308,18 @@ begin
   return res > 0;
 end;
 
+function is_option_included(p_option_name in varchar2) return boolean is
+
+  cnt number;
+begin
+  select count(*)
+    into cnt
+    from apex_application_build_options
+   where application_id = nv('APP_ID')
+     and build_option_name = p_option_name
+     and upper(build_option_status) = 'INCLUDE';
+
+  return cnt > 0;
+end;
+
 end auth_pkg;
-/

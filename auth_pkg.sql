@@ -1,4 +1,3 @@
--- -- package for procedures and functions related to authentication and access management
 create or replace package auth_pkg is
 
 user_already_exists exception;
@@ -82,5 +81,7 @@ procedure write_to_log(
 /* function checks access for authorization schemes in APEX application */
 function authorization_scheme_check(p_authorization_scheme in varchar2) return boolean;
 
+/* function checks build options */
+function is_option_included(p_option_name in varchar2) return boolean;
+
 end auth_pkg;
-/
