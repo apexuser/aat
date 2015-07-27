@@ -73,9 +73,9 @@ create table deputy(
   start_date date,
   end_date   date);
 
-alter table add constraint deputy_pk primary key (deputy_id);
-alter table add constraint user_fk       foreign key (user_id)   references apex_user (user_id);
-alter table add constraint replaced_user foreign key (deputy_of) references apex_user (user_id);
+alter table deputy add constraint deputy_pk primary key (deputy_id);
+alter table deputy add constraint user_fk       foreign key (user_id)   references apex_user (user_id);
+alter table deputy add constraint replaced_user foreign key (deputy_of) references apex_user (user_id);
 
 comment on table  deputy is 'Table allows users to temporarily get privileges of another user';
 comment on column deputy.deputy_id  is 'primary key';

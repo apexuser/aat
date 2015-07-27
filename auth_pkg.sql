@@ -85,3 +85,4 @@ function authorization_scheme_check(p_authorization_scheme in varchar2) return b
 function is_option_included(p_option_name in varchar2) return boolean;
 
 end auth_pkg;
+/
