@@ -5,7 +5,7 @@ drop table attribute;
 drop table user_application;
 drop table user_permission;
 drop table role_permission;
-drop table use_role;
+drop table user_role;
 drop table permission;
 drop table apex_role;
 drop table deputy;
