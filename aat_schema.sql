@@ -329,6 +329,19 @@ create table debug_log(
   message_group varchar2(100),
   message       varchar2(4000));
 
+create table application_settings(
+code           varchar2(50),
+text           varchar2(4000),
+application_id number);
+
+alter table application_settings add constraint code_pk primary key (code, application_id);
+alter table application_settings add constraint as_application_fk foreign key (application_id) references application(application_id);
+
+comment on table  application_settings                is 'table stores a number of text lines used in applications';
+comment on column application_settings.code           is 'setting name';
+comment on column application_settings.text           is 'setting value';
+comment on column application_settings.application_id is 'reference to application where setting is used';
+
 @auth_pkg.sql;
 
 @auth_pkg_body.sql;
