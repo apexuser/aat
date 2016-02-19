@@ -1,15 +1,25 @@
 create or replace package body auth_pkg is
 
   ic_default_admin_name constant apex_user.username%type := 'ADMIN';
-  ic_admin_role      constant apex_role.role_name%type   := 'ADMIN';
-  ic_admin_role_desc constant apex_role.description%type := 'Pre-installed administration role.';
+  ic_admin_role         constant apex_role.role_name%type   := 'ADMIN';
+  ic_admin_role_desc    constant apex_role.description%type := 'Pre-installed administration role.';
 
   ic_admin_permission      constant permission.permission_name%type := 'Administration';
   ic_admin_permission_desc constant permission.description%type     := 'Pre-installed permission to administrative section.';
 
-/* function for encode password. If you decide to change the encode method, 
-   you just need to change this function. By default it uses 
-   dbms_obfuscation_toolkit.md5 function. */
+  /* codes of settings for settings table */
+  st_default_pwd     constant varchar2(20) := 'DEFAULT_PASSWORD';
+  st_recovery_letter constant varchar2(20) := 'RECOVERY_LETTER';
+  st_mail_sender     constant varchar2(20) := 'MAIL_SENDER';
+  
+  /* notification mail substitution strings */
+  nm_sender  constant varchar2(20) := '%mail_sender_name%';
+  nm_user    constant varchar2(20) := '%user%';
+  nm_new_pwd constant varchar2(20) := '%new_pwd%';
+
+  /* function for encode password. If you decide to change the encode method, 
+     you just need to change this function. By default it uses 
+     dbms_obfuscation_toolkit.md5 function. */
 function encode(p_pwd in varchar2, p_salt in varchar2 default null) return varchar2 is
 begin
   write_to_log('ENCODE', ' p_pwd = ' || p_pwd || ' p_salt = ' || p_salt || ' hash = ' || dbms_obfuscation_toolkit.md5(input_string => p_pwd || p_salt));
@@ -31,6 +41,47 @@ begin
          instr(upper(p_password), upper(p_email)) > 0 or
          instr(upper(p_password), upper(p_phone)) > 0 or
          instr(upper(p_password), upper(to_char(p_birth_date, 'dd.mm.yyyy'))) > 0;
+end;
+
+/* procedure inserts  default values for application settings */
+procedure init_settings(p_application_id number, p_admin_id number) is 
+  default_permission_id permission.permission_id%type;
+  default_role_id       apex_role.role_id%type;
+  letter_text constant varchar2(1000) :=
+'Dear %user%!
+
+Someone (may be you) asked us to change your password.
+Your new password is: %new_pwd%.
+This password is temporary and must be changed after successful login.
+
+Best regards, ' || chr(10) || nm_sender;
+
+begin
+  insert into apex_role (role_id, role_name, description, application_id)
+  values (auth_seq.nextval, ic_admin_role, ic_admin_role_desc, p_application_id)
+  returning role_id into default_role_id;
+  
+  insert into permission (permission_id, permission_name, description, application_id)
+  values (auth_seq.nextval, ic_admin_permission, ic_admin_permission_desc, p_application_id)
+  returning permission_id into default_permission_id;
+  
+  insert into user_permission (user_permission_id, user_id, permission_id)
+  values (auth_seq.nextval, p_admin_id, default_permission_id);
+  
+  insert into user_role (user_role_id, user_id, role_id)
+  values (auth_seq.nextval, p_admin_id, default_role_id);
+  
+  insert into role_permission (role_permission_id, role_id, permission_id)
+  values (auth_seq.nextval, default_role_id, default_permission_id);
+  
+  insert into application_settings (code, text, application_id)
+  values (st_default_pwd, '123456', p_application_id);
+  
+  insert into application_settings (code, text, application_id)
+  values (st_recovery_letter, letter_text, p_application_id);
+  
+  insert into application_settings (code, text, application_id)
+  values (st_mail_sender, 'Administration', p_application_id);
 end;
 
 function new_user(
@@ -107,7 +158,16 @@ begin
      set pwd = en_pwd,
          change_pwd = 1
    where username = db_username;
+
+  /*
   
+  APEX_MAIL.SEND(
+    p_to                        IN    VARCHAR2,
+    p_from                      IN    VARCHAR2,
+    p_body                      IN  [ VARCHAR2 | CLOB ],
+    p_body_html                 IN  [ VARCHAR2 | CLOB ] DEFAULT NULL,
+    p_subj                      IN    VARCHAR2 DEFAULT NULL,
+  */
 end;
 
 procedure block_user(p_username in varchar2) is
@@ -171,45 +231,27 @@ begin
 end;
 
 procedure init_new_app(
-    p_apex_id    in number, 
+    p_appl_id    in number, 
     p_app_name   in varchar2,
     p_admin_name in varchar2 default null,
     p_admin_pwd  in varchar2 default '987654') is
 
   admin_id   apex_user.user_id%type;
   admin_name apex_user.username%type;
-
-  default_permission_id permission.permission_id%type;
-  default_role_id       apex_role.role_id%type;
 begin
-  admin_name := upper(nvl(p_admin_name, ic_default_admin_name || '_' || p_apex_id));
+  admin_name := upper(nvl(p_admin_name, ic_default_admin_name || '_' || p_appl_id));
   
   insert into application (application_id, application_name)
-  values (p_apex_id, p_app_name);
+  values (p_appl_id, p_app_name);
   
   write_to_log('INIT_NEW_APP', 'admin_name = ' || admin_name || ' p_admin_pwd = ' || p_admin_pwd);
   
   admin_id := new_user(
                 p_username => admin_name, 
                 p_password => p_admin_pwd, 
-                p_app_id   => p_apex_id);
+                p_app_id   => p_appl_id);
     
-  insert into apex_role (role_id, role_name, description, application_id)
-  values (auth_seq.nextval, ic_admin_role, ic_admin_role_desc, p_apex_id)
-  returning role_id into default_role_id;
-  
-  insert into permission (permission_id, permission_name, description, application_id)
-  values (auth_seq.nextval, ic_admin_permission, ic_admin_permission_desc, p_apex_id)
-  returning permission_id into default_permission_id;
-  
-  insert into user_permission (user_permission_id, user_id, permission_id)
-  values (auth_seq.nextval, admin_id, default_permission_id);
-  
-  insert into user_role (user_role_id, user_id, role_id)
-  values (auth_seq.nextval, admin_id, default_role_id);
-  
-  insert into role_permission (role_permission_id, role_id, permission_id)
-  values (auth_seq.nextval, default_role_id, default_permission_id);
+  init_settings(p_appl_id, admin_id);
 end;
 
 procedure write_to_log(

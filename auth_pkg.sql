@@ -10,16 +10,6 @@ pragma exception_init(password_is_empty,   -20901);
 pragma exception_init(password_too_weak,   -20902);
 pragma exception_init(incorrect_password,  -20903);
 
-letter_text constant varchar2(1000) :=
-'Dear %user%!
-
-Someone (may be you) asked as to change your password.
-Your new password is: %new_pwd%.
-This password is temporary and must be changed after successful login.
-
-With best regards, 
-%mail_sender_name%';
-
 /* Function creates new user.
    Checks and raises exceptions if:
    - such user already exists;
@@ -68,7 +58,7 @@ function date_check(
      - administration permission
    All default roles and permissions have no time limit. */
 procedure init_new_app(
-    p_apex_id    in number, 
+    p_appl_id    in number, 
     p_app_name   in varchar2,
     p_admin_name in varchar2 default null,
     p_admin_pwd  in varchar2 default '987654');
