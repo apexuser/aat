@@ -8,3 +8,7 @@ Following features are already implemented in this template:
  * default ADMIN user for an application
 
 Also you can use this template for creating multiple applications in one APEX workspace.
+
+UPDATE
+
+Branch "multiple_applications" is reserved for a template, which allows to create multiple applications within one database schema and workspace. Now I don't know, how to design such template. All my attempts look weird. I'll return to this brach later, if ispiration will come.
