@@ -1,12 +1,5 @@
 create or replace package body auth_pkg is
 
-  ic_default_admin_name constant apex_user.username%type := 'ADMIN';
-  ic_admin_role         constant apex_role.role_name%type   := 'ADMIN';
-  ic_admin_role_desc    constant apex_role.description%type := 'Pre-installed administration role.';
-
-  ic_admin_permission      constant permission.permission_name%type := 'Administration';
-  ic_admin_permission_desc constant permission.description%type     := 'Pre-installed permission to administrative section.';
-
   /* codes of settings for settings table */
   st_default_pwd     constant varchar2(20) := 'DEFAULT_PASSWORD';
   st_recovery_letter constant varchar2(20) := 'RECOVERY_LETTER';
@@ -20,16 +13,16 @@ create or replace package body auth_pkg is
   /* function for encode password. If you decide to change the encode method, 
      you just need to change this function. By default it uses 
      dbms_obfuscation_toolkit.md5 function. */
-function encode(p_pwd in varchar2, p_salt in varchar2 default null) return varchar2 is
+function encode (p_pwd in varchar2, p_salt in varchar2 default null) return varchar2 is
 begin
   write_to_log('ENCODE', ' p_pwd = ' || p_pwd || ' p_salt = ' || p_salt || ' hash = ' || dbms_obfuscation_toolkit.md5(input_string => p_pwd || p_salt));
   return dbms_obfuscation_toolkit.md5(input_string => p_pwd || p_salt);
 end;
 
-/* function checks strength of password. Basic check is quite weak
+/* function checks strength of the password. Basic check is quite weak
    and simply checks that user's name, email, birth date and phone number don't
-   included into a passwrd. */
-function is_password_weak(    
+   included into a password. */
+function is_password_weak (    
     p_username       in varchar2,
     p_password       in varchar2,
     p_email          in varchar2,
@@ -44,7 +37,7 @@ begin
 end;
 
 /* procedure inserts  default values for application settings */
-procedure init_settings(p_application_id number, p_admin_id number) is 
+procedure init_settings (p_admin_id number) is 
   default_permission_id permission.permission_id%type;
   default_role_id       apex_role.role_id%type;
   letter_text constant varchar2(1000) :=
@@ -57,12 +50,12 @@ This password is temporary and must be changed after successful login.
 Best regards, ' || chr(10) || nm_sender;
 
 begin
-  insert into apex_role (role_id, role_name, description, application_id)
-  values (auth_seq.nextval, ic_admin_role, ic_admin_role_desc, p_application_id)
+  insert into apex_role (role_id, role_name, description)
+  values (auth_seq.nextval, ic_admin_role, ic_admin_role_desc)
   returning role_id into default_role_id;
   
-  insert into permission (permission_id, permission_name, description, application_id)
-  values (auth_seq.nextval, ic_admin_permission, ic_admin_permission_desc, p_application_id)
+  insert into permission (permission_id, permission_name, description)
+  values (auth_seq.nextval, ic_admin_permission, ic_admin_permission_desc)
   returning permission_id into default_permission_id;
   
   insert into user_permission (user_permission_id, user_id, permission_id)
@@ -74,24 +67,23 @@ begin
   insert into role_permission (role_permission_id, role_id, permission_id)
   values (auth_seq.nextval, default_role_id, default_permission_id);
   
-  insert into application_settings (code, text, application_id)
-  values (st_default_pwd, '123456', p_application_id);
+  insert into application_settings (code, text_val)
+  values (st_default_pwd, '123456');
   
-  insert into application_settings (code, text, application_id)
-  values (st_recovery_letter, letter_text, p_application_id);
+  insert into application_settings (code, text_val)
+  values (st_recovery_letter, letter_text);
   
-  insert into application_settings (code, text, application_id)
-  values (st_mail_sender, 'Administration', p_application_id);
+  insert into application_settings (code, text_val)
+  values (st_mail_sender, 'Administration');
 end;
 
-function new_user(
+function new_user (
     p_username       in varchar2, 
     p_password       in varchar2, 
     p_user_full_name in nvarchar2 default null,
     p_email          in varchar2  default null,
     p_phone          in varchar2  default null,
-    p_birth_date     in date      default null,
-    p_app_id         in number    default v('APP_ID')) return number is
+    p_birth_date     in date      default null) return number is
 
   en_pwd apex_user.pwd%type;
   new_user_id number;
@@ -111,19 +103,16 @@ begin
 
   en_pwd := encode(p_password, db_username);
   new_user_id := auth_seq.nextval;
-  insert into apex_user(user_id, username, user_full_name, pwd, email, phone, birth_date)
+  insert into apex_user (user_id, username, user_full_name, pwd, email, phone, birth_date)
   values (new_user_id, db_username, p_user_full_name, en_pwd, p_email, p_phone, p_birth_date);
 
-  insert into user_application (user_application_id, user_id, application_id)
-  values (auth_seq.nextval, new_user_id, p_app_id);
-  
   return new_user_id;
   exception
     when dup_val_on_index then
       raise_application_error(-20900, 'User "' || db_username || '" already exists');
 end;
 
-function check_user(
+function check_user (
     p_username in varchar2,
     p_password in varchar2) return boolean is
 
@@ -145,7 +134,7 @@ begin
   return cnt > 0;
 end;
 
-procedure recover_password(p_username in varchar2) is
+procedure recover_password (p_username in varchar2) is
   tmp_pwd     varchar2(8);
   en_pwd      apex_user.pwd%type;
   db_username apex_user.username%type;
@@ -170,21 +159,21 @@ begin
   */
 end;
 
-procedure block_user(p_username in varchar2) is
+procedure block_user (p_username in varchar2) is
   db_username apex_user.username%type;
 begin
   db_username := upper(p_username);
   update apex_user set is_active = 0 where username = db_username;
 end;
 
-procedure unlock_user(p_username in varchar2) is
+procedure unlock_user (p_username in varchar2) is
   db_username apex_user.username%type;
 begin
   db_username := upper(p_username);
   update apex_user set is_active = 1 where username = db_username;
 end;
 
-procedure change_password(
+procedure change_password (
     p_username     in varchar2,
     p_old_password in varchar2, 
     p_new_password in varchar2) is
@@ -220,7 +209,7 @@ begin
 end;
 
 /* date_check */
-function date_check(
+function date_check (
     p_start_date in date,
     p_end_date   in date) return number is
 begin
@@ -230,28 +219,22 @@ begin
            else 0 end;
 end;
 
-procedure init_new_app(
-    p_appl_id    in number, 
-    p_app_name   in varchar2,
-    p_admin_name in varchar2 default null,
+procedure init_new_app (
+    p_admin_name in varchar2 default ic_default_admin_name,
     p_admin_pwd  in varchar2 default '987654') is
 
   admin_id   apex_user.user_id%type;
   admin_name apex_user.username%type;
 begin
-  admin_name := upper(nvl(p_admin_name, ic_default_admin_name || '_' || p_appl_id));
-  
-  insert into application (application_id, application_name)
-  values (p_appl_id, p_app_name);
+  admin_name := upper(p_admin_name);
   
   write_to_log('INIT_NEW_APP', 'admin_name = ' || admin_name || ' p_admin_pwd = ' || p_admin_pwd);
   
   admin_id := new_user(
                 p_username => admin_name, 
-                p_password => p_admin_pwd, 
-                p_app_id   => p_appl_id);
+                p_password => p_admin_pwd);
     
-  init_settings(p_appl_id, admin_id);
+  init_settings(admin_id);
 end;
 
 procedure write_to_log(
@@ -276,7 +259,6 @@ begin
         where au.user_id = up.user_id
           and up.permission_id = p.permission_id
           and date_check(up.start_date, up.end_date) = 1
-          and p.application_id = nv('APP_ID')
           and au.username = v('APP_USER')
           and p.permission_name = p_authorization_scheme),
        rbac_scheme as (
@@ -293,8 +275,6 @@ begin
           and rp.permission_id = p.permission_id
           and date_check(ur.start_date, ur.end_date) = 1
           and date_check(rp.start_date, rp.end_date) = 1
-          and ar.application_id = nv('APP_ID')
-          and  p.application_id = nv('APP_ID')
           and au.username = v('APP_USER')
           and p.permission_name = p_authorization_scheme),
        simple_deputy as (
@@ -309,7 +289,6 @@ begin
           and d.deputy_of = up.user_id
           and up.permission_id = p.permission_id
           and date_check(up.start_date, up.end_date) = 1
-          and p.application_id = nv('APP_ID')
           and au.username = v('APP_USER')
           and p.permission_name = p_authorization_scheme),
        -- subquery #4 - connection through roles
@@ -329,8 +308,6 @@ begin
           and rp.permission_id = p.permission_id
           and date_check(ur.start_date, ur.end_date) = 1
           and date_check(rp.start_date, rp.end_date) = 1
-          and ar.application_id = nv('APP_ID')
-          and  p.application_id = nv('APP_ID')
           and au.username = v('APP_USER')
           and p.permission_name = p_authorization_scheme)
   select count(*)
@@ -350,8 +327,7 @@ begin
   return res > 0;
 end;
 
-function is_option_included(p_option_name in varchar2) return boolean is
-
+function is_option_included (p_option_name in varchar2) return boolean is
   cnt number;
 begin
   select count(*)

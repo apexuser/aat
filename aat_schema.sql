@@ -15,18 +15,6 @@ connect &&USER/&&PASSWORD
 -- sequence for authentication
 create sequence auth_seq;
 
--- table for applications
-create table application(
-application_id   number,
-application_name varchar2(100));
-
-alter table application add constraint application_pk primary key (application_id);
-alter table application add constraint application_name_uq unique (application_name);
-
-comment on table  application                  is 'list of installed applications';
-comment on column application.application_id   is 'primary key, equal to application ID in APEX';
-comment on column application.application_name is 'name of application';
-
 -- table for users
 create table apex_user(
   user_id        number,
@@ -77,7 +65,7 @@ alter table deputy add constraint deputy_pk primary key (deputy_id);
 alter table deputy add constraint user_fk       foreign key (user_id)   references apex_user (user_id);
 alter table deputy add constraint replaced_user foreign key (deputy_of) references apex_user (user_id);
 
-comment on table  deputy is 'Table allows users to temporarily get privileges of another user';
+comment on table  deputy            is 'Table allows users to temporarily get privileges of another user';
 comment on column deputy.deputy_id  is 'primary key';
 comment on column deputy.user_id    is 'User who temporarily got privileges of another user';
 comment on column deputy.deputy_of  is 'User who is temporarily replaced';
@@ -99,20 +87,17 @@ create table apex_role(
   role_id        number,
   parent_id      number,
   role_name      nvarchar2(100),
-  application_id number,
   description    varchar2(1000));
 
-alter table apex_role add constraint role_pk          primary key (role_id);
-alter table apex_role add constraint role_name_uq     unique (role_name, application_id);
-alter table apex_role add constraint parent_role      foreign key (parent_id)      references apex_role (role_id);
-alter table apex_role add constraint r_application_fk foreign key (application_id) references application (application_id);
+alter table apex_role add constraint role_pk      primary key (role_id);
+alter table apex_role add constraint role_name_uq unique (role_name);
+alter table apex_role add constraint parent_role  foreign key (parent_id) references apex_role (role_id);
 
-comment on table  apex_role                is 'hierarchical table of roles for RBAC model';
-comment on column apex_role.role_id        is 'primary key';
-comment on column apex_role.parent_id      is 'parent role (higher level for combine multiple roles)';
-comment on column apex_role.role_name      is 'name of role for displaying in interface';
-comment on column apex_role.application_id is 'number of application where this role is used';
-comment on column apex_role.description    is 'description of a role';
+comment on table  apex_role             is 'hierarchical table of roles for RBAC model';
+comment on column apex_role.role_id     is 'primary key';
+comment on column apex_role.parent_id   is 'parent role (higher level for combine multiple roles)';
+comment on column apex_role.role_name   is 'name of role for displaying in interface';
+comment on column apex_role.description is 'description of a role';
 
 create or replace trigger bi_role
 before insert on apex_role
@@ -128,17 +113,14 @@ end;
 create table permission(
   permission_id   number,
   permission_name nvarchar2(100),
-  application_id  number,
   description     varchar2(1000));
 
 alter table permission add constraint permission_pk      primary key (permission_id);
-alter table permission add constraint permission_name_uq unique (permission_name, application_id);
-alter table permission add constraint application_id     foreign key (application_id) references application (application_id);
+alter table permission add constraint permission_name_uq unique (permission_name);
 
 comment on table  permission                 is 'table of permissions for RBAC model';
 comment on column permission.permission_id   is 'primary key';
 comment on column permission.permission_name is 'name of permission for displaying in interface';
-comment on column permission.application_id  is 'number of application where this permission is used';
 comment on column permission.description     is 'description of a permission';
 
 create or replace trigger bi_permission
@@ -163,7 +145,7 @@ alter table user_role add constraint user_role_pk primary key (user_role_id);
 alter table user_role add constraint ur_user_fk   foreign key (user_id) references apex_user (user_id);
 alter table user_role add constraint ur_role_fk   foreign key (role_id) references apex_role (role_id);
 
-comment on table  user_role is 'joining users and roles';
+comment on table  user_role              is 'joining users and roles';
 comment on column user_role.user_role_id is 'primary key';
 comment on column user_role.user_id      is 'reference to user';
 comment on column user_role.role_id      is 'reference to role';
@@ -238,50 +220,18 @@ begin
 end;
 /
 
--- table for joining users and applications
-create table user_application(
-  user_application_id number,
-  user_id             number,
-  application_id      number,
-  start_date          date,
-  end_date            date);
-
-alter table user_application add constraint user_application_pk primary key (user_application_id);
-alter table user_application add constraint ua_user_fk          foreign key (user_id) references apex_user(user_id);
-alter table user_application add constraint ua_application_id   foreign key (application_id) references application (application_id);
-
-comment on table  user_application                     is 'table defines which user has access to which application';
-comment on column user_application.user_application_id is 'primary key';
-comment on column user_application.user_id             is 'reference to user';
-comment on column user_application.application_id      is 'reference to application';
-comment on column user_application.start_date          is 'date when user receive access to an allication';
-comment on column user_application.end_date            is 'date when user''s access to application stops';
-
-create or replace trigger bi_user_application
-before insert on user_application
-for each row
-begin
-  if :new.user_application_id is null then
-     :new.user_application_id := auth_seq.nextval;
-  end if;
-end;
-/
-
 create table attribute(
   attribute_id   number,
   attribute_name varchar2(100),
-  description    varchar2(1000),
-  application_id number);
+  description    varchar2(1000));
 
-alter table attribute add constraint attribute_pk        primary key (attribute_id);
-alter table attribute add constraint attribute_uq        unique (attribute_name, application_id);
-alter table attribute add constraint attr_application_fk foreign key (application_id) references application (application_id);
+alter table attribute add constraint attribute_pk primary key (attribute_id);
+alter table attribute add constraint attribute_uq unique (attribute_name);
 
 comment on table  attribute                is 'table for attributes for ABAC model';
 comment on column attribute.attribute_id   is 'primary key';
 comment on column attribute.attribute_name is 'name of an attribute';
 comment on column attribute.description    is 'description of an attribute';
-comment on column attribute.application_id is 'application where an attribute is used';
 
 create or replace trigger bi_attribute
 before insert on attribute
@@ -330,21 +280,25 @@ create table debug_log(
   message       varchar2(4000));
 
 create table application_settings(
-code           varchar2(50),
-text           varchar2(4000),
-application_id number);
+  code varchar2(50),
+  text_val varchar2(4000),
+  date_val date,
+  numb_val number
+);
 
-alter table application_settings add constraint code_pk primary key (code, application_id);
-alter table application_settings add constraint as_application_fk foreign key (application_id) references application(application_id);
+alter table application_settings add constraint code_pk primary key (code);
 
-comment on table  application_settings                is 'table stores a number of text lines used in applications';
+comment on table  application_settings                is 'table stores a number of text lines used in application';
 comment on column application_settings.code           is 'setting name';
-comment on column application_settings.text           is 'setting value';
-comment on column application_settings.application_id is 'reference to application where setting is used';
+comment on column application_settings.text_val       is 'setting text value';
+comment on column application_settings.date_val       is 'setting date value';
+comment on column application_settings.numb_val       is 'setting number value';
 
 @auth_pkg.sql;
 
 @auth_pkg_body.sql;
+
+@app_init.sql;
 
 show errors
 quit
